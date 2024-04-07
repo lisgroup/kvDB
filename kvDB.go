@@ -39,3 +39,19 @@ func Open(filename string) (kv *KvDB, err error) {
 		filePath: absPathFilename,
 	}, nil
 }
+
+func (k *KvDB) Put(key, value []byte) error {
+	if len(key) == 0 {
+		return nil
+	}
+	k.mu.Lock()
+	defer k.mu.Unlock()
+
+	offset := k.db.Offset
+	entry := NewEntry(key, value, PUT)
+	// 写入文件中
+	err := k.db.Write(entry)
+	// 写入 map 中
+	k.idx[string(key)] = offset
+	return err
+}
