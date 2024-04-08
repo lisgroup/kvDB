@@ -1,6 +1,7 @@
 package kvDB
 
 import (
+	"io"
 	"os"
 	"path/filepath"
 	"sync"
@@ -33,11 +34,15 @@ func Open(filename string) (kv *KvDB, err error) {
 		return nil, err
 	}
 
-	return &KvDB{
+	kv = &KvDB{
 		idx:      make(map[string]int64),
 		db:       db,
 		filePath: absPathFilename,
-	}, nil
+	}
+	// 加载磁盘数据到内存
+	kv.loadFromDisk()
+
+	return kv, nil
 }
 
 func (k *KvDB) Put(key, value []byte) error {
@@ -54,4 +59,59 @@ func (k *KvDB) Put(key, value []byte) error {
 	// 写入 map 中
 	k.idx[string(key)] = offset
 	return err
+}
+
+func (k *KvDB) Get(key []byte) (val []byte, err error) {
+	if len(key) == 0 {
+		return
+	}
+	k.mu.RLock()
+	defer k.mu.RUnlock()
+
+	offset, err := k.exist(key)
+	if err != nil {
+		return
+	}
+
+	e, err := k.db.Read(offset)
+	if err != nil && err != io.EOF {
+		return
+	}
+	if e == nil {
+		return nil, ErrKeyNotFound
+	}
+	return e.Value, nil
+
+}
+
+func (k *KvDB) exist(key []byte) (offset int64, err error) {
+	offset, ok := k.idx[string(key)]
+	if !ok {
+		return 0, ErrKeyNotFound
+	}
+	return offset, nil
+}
+
+func (k *KvDB) loadFromDisk() {
+	if k.db == nil {
+		return
+	}
+	var offset int64
+	for {
+		e, err := k.db.Read(offset)
+		if err != nil {
+			if err == io.EOF {
+				break
+			}
+			return
+		}
+		// 记录索引位置
+		k.idx[string(e.Key)] = offset
+		// mark 标识
+		if e.Mark == DEL {
+			delete(k.idx, string(e.Key))
+		}
+		// 移动偏移量
+		offset += e.Len()
+	}
 }
