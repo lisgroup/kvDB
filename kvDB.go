@@ -1,6 +1,7 @@
 package kvDB
 
 import (
+	"errors"
 	"io"
 	"os"
 	"path/filepath"
@@ -114,4 +115,26 @@ func (k *KvDB) loadFromDisk() {
 		// 移动偏移量
 		offset += e.Len()
 	}
+}
+
+func (k *KvDB) Del(key []byte) (err error) {
+	if len(key) == 0 {
+		return nil
+	}
+	k.mu.Lock()
+	defer k.mu.Unlock()
+	_, err = k.exist(key)
+	if errors.Is(err, ErrKeyNotFound) {
+		err = nil
+		return
+	}
+	// 封装成 Entry 并写入
+	e := NewEntry(key, nil, DEL)
+	err = k.db.Write(e)
+	if err != nil {
+		return
+	}
+	// 删除内存中的 key
+	delete(k.idx, string(key))
+	return
 }
