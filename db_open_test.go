@@ -11,7 +11,7 @@ func TestPut(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// 测试Put方法
+	// test Put method
 	err = kv.Put([]byte("key1"), []byte("value1"))
 	if err != nil {
 		t.Error(err)
@@ -28,7 +28,7 @@ func TestKvDB_Get(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// 测试Get方法
+	// test Put method
 	val, err := kv.Get([]byte("key1"))
 	if err != nil {
 		t.Error(err)
@@ -47,16 +47,16 @@ func TestKvDB_Del(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	// 测试Put方法
+	// test Put method
 	err = kv.Put([]byte("key1"), []byte("value1"))
-	// 测试Get方法
+	// test Get method
 	val, err := kv.Get([]byte("key1"))
 	if err != nil {
 		t.Error(err)
 	}
 	t.Log(string(val))
 
-	// 测试Del方法
+	// test Del method
 	err = kv.Del([]byte("key1"))
 	if err != nil {
 		t.Error(err)

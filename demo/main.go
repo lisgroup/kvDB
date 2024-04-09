@@ -1,8 +1,3 @@
-# kvDB
-KV database
-
-## Use
-```go
 package main
 
 import (
@@ -39,5 +34,3 @@ func main() {
 	}
 	fmt.Printf("key1: %s\n", string(val))
 }
-
-```
