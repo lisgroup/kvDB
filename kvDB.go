@@ -138,3 +138,10 @@ func (k *KvDB) Del(key []byte) (err error) {
 	delete(k.idx, string(key))
 	return
 }
+
+func (k *KvDB) Close() error {
+	if k.db == nil {
+		return ErrInvalidDBFile
+	}
+	return k.db.File.Close()
+}
