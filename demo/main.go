@@ -33,4 +33,10 @@ func main() {
 		panic(err)
 	}
 	fmt.Printf("key1: %s\n", string(val))
+
+	err = kv.Close()
+	if err != nil {
+		fmt.Println(err)
+	}
+	fmt.Printf("kvDB closed\n")
 }
