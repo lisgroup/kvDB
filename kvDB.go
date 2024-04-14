@@ -139,6 +139,25 @@ func (k *KvDB) Del(key []byte) (err error) {
 	return
 }
 
+func (k *KvDB) Merge() error {
+	if k.db == nil {
+		return ErrInvalidDBFile
+	}
+	// 1. 关闭数据库
+	if err := k.Close(); err != nil {
+		return err
+	}
+	// 2. 打开数据库
+	db, err := NewDBOpen(k.filePath)
+	if err != nil {
+		return err
+	}
+	k.db = db
+	// 3. 加载磁盘数据到内存
+	k.loadFromDisk()
+	return nil
+}
+
 func (k *KvDB) Close() error {
 	if k.db == nil {
 		return ErrInvalidDBFile
