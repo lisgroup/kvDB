@@ -2,8 +2,13 @@ package kvDB
 
 import (
 	"os"
+	"path/filepath"
 	"sync"
 )
+
+const Path = "database"
+const FileName = "kv.db"
+const MergeFileName = "kv.db.merge"
 
 type DBOpen struct {
 	File    *os.File
@@ -11,24 +16,30 @@ type DBOpen struct {
 	BufPool *sync.Pool
 }
 
-func NewDBOpen(absPathFilename string) (*DBOpen, error) {
-	file, err := os.OpenFile(absPathFilename, os.O_CREATE|os.O_RDWR, 0644)
-	if err != nil {
-		return nil, err
-	}
-	stat, err := os.Stat(absPathFilename)
+func NewDBOpen(path string) (*DBOpen, error) {
+	fileName := filepath.Join(path, FileName)
+	return newInternal(fileName)
+}
+
+func NewMergeDBFile(path string) (*DBOpen, error) {
+	fileName := filepath.Join(path, MergeFileName)
+	return newInternal(fileName)
+}
+
+func newInternal(fileName string) (*DBOpen, error) {
+	file, err := os.OpenFile(fileName, os.O_CREATE|os.O_RDWR, 0644)
 	if err != nil {
 		return nil, err
 	}
 
+	stat, err := os.Stat(fileName)
+	if err != nil {
+		return nil, err
+	}
 	pool := &sync.Pool{New: func() interface{} {
 		return make([]byte, entryHeaderSize)
 	}}
-	return &DBOpen{
-		File:    file,
-		Offset:  stat.Size(),
-		BufPool: pool,
-	}, nil
+	return &DBOpen{Offset: stat.Size(), File: file, BufPool: pool}, nil
 }
 
 func (o *DBOpen) Write(entry *Entry) error {
