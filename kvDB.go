@@ -8,8 +8,6 @@ import (
 	"sync"
 )
 
-const Path = "database"
-
 type KvDB struct {
 	idx      map[string]int64 // 索引的位置
 	db       *DBOpen          // 数据文件
@@ -17,20 +15,20 @@ type KvDB struct {
 	mu       sync.RWMutex     // 读写锁
 }
 
-func Open(filename string) (kv *KvDB, err error) {
-	// 1. 判断目录文件是否存在，不存在创建文件
-	if _, err = os.Stat(Path); os.IsNotExist(err) {
-		if err = os.MkdirAll(Path, os.ModePerm); err != nil {
-			return
+func Open(dirPath string) (kv *KvDB, err error) {
+	// 如果数据库目录不存在，则新建一个
+	if _, err := os.Stat(dirPath); os.IsNotExist(err) {
+		if err := os.MkdirAll(dirPath, os.ModePerm); err != nil {
+			return nil, err
 		}
 	}
-	// 2. 加载文件
-	var absPathFile string
-	if absPathFile, err = filepath.Abs(Path); err != nil {
-		return
+
+	// 加载数据文件
+	dirAbsPath, err := filepath.Abs(dirPath)
+	if err != nil {
+		return nil, err
 	}
-	absPathFilename := filepath.Join(absPathFile, filename)
-	db, err := NewDBOpen(absPathFilename)
+	db, err := NewDBOpen(dirAbsPath)
 	if err != nil {
 		return nil, err
 	}
@@ -38,7 +36,7 @@ func Open(filename string) (kv *KvDB, err error) {
 	kv = &KvDB{
 		idx:      make(map[string]int64),
 		db:       db,
-		filePath: absPathFilename,
+		filePath: dirAbsPath,
 	}
 	// 加载磁盘数据到内存
 	kv.loadFromDisk()
@@ -140,21 +138,35 @@ func (k *KvDB) Del(key []byte) (err error) {
 }
 
 func (k *KvDB) Merge() error {
-	if k.db == nil {
-		return ErrInvalidDBFile
+	if k.db.Offset == 0 {
+		return nil
 	}
-	// 1. 关闭数据库
-	if err := k.Close(); err != nil {
-		return err
+	var validEntry []*Entry
+	var offset int64
+	for {
+		e, err := k.db.Read(offset)
+		if err != nil {
+			if err == io.EOF {
+				break
+			}
+			return err
+		}
+		// 判断是否是有效数据
+		if e.Mark == PUT {
+			validEntry = append(validEntry, e)
+		}
+		offset += e.Len()
 	}
-	// 2. 打开数据库
-	db, err := NewDBOpen(k.filePath)
+	// 重新写入磁盘
+	file, err := NewMergeDBFile(k.filePath)
 	if err != nil {
 		return err
 	}
-	k.db = db
-	// 3. 加载磁盘数据到内存
-	k.loadFromDisk()
+	defer func() {
+		_ = os.Remove(file.File.Name())
+	}()
+	k.mu.Lock()
+	defer k.mu.Unlock()
 	return nil
 }
 
