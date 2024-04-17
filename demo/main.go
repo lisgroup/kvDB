@@ -8,7 +8,7 @@ import (
 
 func main() {
 	// open kvDB
-	kv, err := kvDB.Open("kv.db")
+	kv, err := kvDB.Open(kvDB.Path)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -23,16 +23,18 @@ func main() {
 	fmt.Printf("key1: %s\n", string(val))
 
 	// test Del method
-	err = kv.Del([]byte("key1"))
-	if err != nil {
-		panic(err)
-	}
+	// err = kv.Del([]byte("key1"))
+	// if err != nil {
+	// 	panic(err)
+	// }
 
 	val, err = kv.Get([]byte("key1"))
 	if err != nil && !errors.Is(err, kvDB.ErrKeyNotFound) {
 		panic(err)
 	}
 	fmt.Printf("key1: %s\n", string(val))
+	// merge
+	_ = kv.Merge()
 
 	err = kv.Close()
 	if err != nil {
