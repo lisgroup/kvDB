@@ -151,23 +151,47 @@ func (k *KvDB) Merge() error {
 			}
 			return err
 		}
-		// 判断是否是有效数据
-		if e.Mark == PUT {
+		// 判断是否内存是否存在
+		if off, ok := k.idx[string(e.Key)]; ok && off == offset {
 			validEntry = append(validEntry, e)
 		}
 		offset += e.Len()
 	}
 	// 重新写入磁盘
-	file, err := NewMergeDBFile(k.filePath)
+	writeFile, err := NewMergeDBFile(k.filePath)
 	if err != nil {
 		return err
 	}
 	defer func() {
-		_ = os.Remove(file.File.Name())
+		_ = os.Remove(writeFile.File.Name())
 	}()
 	k.mu.Lock()
 	defer k.mu.Unlock()
-	return nil
+	// 写入磁盘
+	for _, e := range validEntry {
+		writeOff := writeFile.Offset
+		err = writeFile.Write(e)
+		if err != nil {
+			return err
+		}
+		// 更新索引
+		k.idx[string(e.Key)] = writeOff
+	}
+	// 获取文件名
+	fileName := k.db.File.Name()
+	// 关闭文件
+	_ = k.db.File.Close()
+	// 删除原文件
+	_ = os.Remove(fileName)
+	// 关闭 merge 文件
+	_ = writeFile.File.Close()
+	// 获取新文件名
+	newFile := writeFile.File.Name()
+	// 重命名
+	_ = os.Rename(newFile, fileName)
+	// 重新加载
+	k.db, err = NewDBOpen(k.filePath)
+	return err
 }
 
 func (k *KvDB) Close() error {
