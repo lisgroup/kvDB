@@ -17,8 +17,8 @@ type KvDB struct {
 
 func Open(dirPath string) (kv *KvDB, err error) {
 	// 如果数据库目录不存在，则新建一个
-	if _, err := os.Stat(dirPath); os.IsNotExist(err) {
-		if err := os.MkdirAll(dirPath, os.ModePerm); err != nil {
+	if _, err = os.Stat(dirPath); os.IsNotExist(err) {
+		if err = os.MkdirAll(dirPath, os.ModePerm); err != nil {
 			return nil, err
 		}
 	}
@@ -186,9 +186,9 @@ func (k *KvDB) Merge() error {
 	// 关闭 merge 文件
 	_ = writeFile.File.Close()
 	// 获取新文件名
-	newFile := writeFile.File.Name()
+	mergeFile := writeFile.File.Name()
 	// 重命名
-	_ = os.Rename(newFile, fileName)
+	_ = os.Rename(mergeFile, fileName)
 	// 重新加载
 	k.db, err = NewDBOpen(k.filePath)
 	return err
