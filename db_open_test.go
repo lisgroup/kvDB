@@ -6,7 +6,7 @@ import (
 )
 
 func TestPut(t *testing.T) {
-	kv, err := Open("kv.db")
+	kv, err := Open(Path)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -23,7 +23,7 @@ func TestPut(t *testing.T) {
 }
 
 func TestKvDB_Get(t *testing.T) {
-	kv, err := Open("kv.db")
+	kv, err := Open(Path)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -43,7 +43,7 @@ func TestKvDB_Get(t *testing.T) {
 }
 
 func TestKvDB_Del(t *testing.T) {
-	kv, err := Open("kv.db")
+	kv, err := Open(Path)
 	if err != nil {
 		t.Fatal(err)
 	}
