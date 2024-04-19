@@ -38,6 +38,14 @@ func main() {
 		panic(err)
 	}
 	fmt.Printf("key1: %s\n", string(val))
+	// merge
+	_ = kv.Merge()
+
+	err = kv.Close()
+	if err != nil {
+		fmt.Println(err)
+	}
+	fmt.Printf("kvDB closed\n")
 }
 
 ```

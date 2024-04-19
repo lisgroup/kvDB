@@ -43,12 +43,12 @@ func newInternal(fileName string) (*DBOpen, error) {
 }
 
 func (o *DBOpen) Write(entry *Entry) error {
-	// 写入文件前先编码
+	// Encode before writing files
 	data, err := entry.Encode()
 	if err != nil {
 		return err
 	}
-	// 写入文件
+	// writing to file
 	_, err = o.File.WriteAt(data, o.Offset)
 	o.Offset += entry.Len()
 	return err
